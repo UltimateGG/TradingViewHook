@@ -1,1 +1,3 @@
-test: 'abc'
+server:
+  port: 81
+  path: '/trade'
