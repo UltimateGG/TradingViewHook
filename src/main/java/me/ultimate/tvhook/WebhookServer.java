@@ -1,7 +1,10 @@
 package me.ultimate.tvhook;
 
+import com.binance.api.client.domain.OrderSide;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import me.ultimate.tvhook.utils.HttpException;
+import me.ultimate.tvhook.utils.WebhookSignal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -32,15 +35,15 @@ public class WebhookServer extends Thread {
 
     @Override
     public void run() {
+        if (PORT != 80 && PORT != 443)
+            LOGGER.warn("TradingView webhooks only support ports 80 and 443");
+
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             LOGGER.info("Webhook server started on port " + PORT);
 
             while (true) {
                 try (Socket socket = serverSocket.accept()) {
-                    if (!isIPAllowed(socket)) {
-                        socket.close();
-                        continue;
-                    }
+                    if (!isIPAllowed(socket)) continue;
 
                     LOGGER.info("Accepted connection from " + socket.getInetAddress().getHostAddress());
 
@@ -107,9 +110,9 @@ public class WebhookServer extends Thread {
 
         try {
             onSignal(jsonObject);
-        } catch (Exception msg) {
-            status = 500;
-            response = "{ \"error\": \"" + msg.getMessage() + "\" }";
+        } catch (Exception ex) {
+            status = (ex instanceof HttpException) ? ((HttpException) ex).getStatus() : 500;
+            response = "{ \"error\": \"" + ex.getMessage() + "\" }";
         }
 
         OutputStream writer = socket.getOutputStream();
@@ -118,8 +121,32 @@ public class WebhookServer extends Thread {
         writer.close();
     }
 
-    private void onSignal(JsonObject message) throws Exception {
+    private void onSignal(JsonObject message) throws HttpException {
+        String action = message.get("action").getAsString().toUpperCase();
+        String type = message.get("type").getAsString().toUpperCase();
+        String currency = message.get("currency").getAsString();
+        double price = message.get("price").getAsDouble();
+        String token = message.get("token").getAsString();
 
+        if (!Main.getConfig().getString("server.token").equals(token))
+            throw new HttpException(401, "Not authorized");
+
+        if (!"LONG".equals(type))
+            throw new HttpException(400, "Only LONG positions are supported right now");
+
+        if (currency == null || currency.isEmpty() || price <= 0.0D)
+            throw new HttpException(400, "Invalid parameters");
+
+        message.remove("action");
+        message.remove("type");
+        message.remove("currency");
+        message.remove("price");
+        message.remove("token");
+
+        WebhookSignal signal = new WebhookSignal(OrderSide.valueOf(action), type, currency, price, message.size() > 0 ? message : null);
+        LOGGER.info("Received signal: " + signal);
+
+        Main.getQueue().add(() -> Main.onSignal(signal));
     }
 
     private boolean isIPAllowed(Socket conn) {

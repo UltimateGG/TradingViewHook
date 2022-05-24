@@ -1,3 +1,4 @@
 server:
   port: 81
   path: '/trade'
+  token: 'my-private-token'
