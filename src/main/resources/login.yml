@@ -1,0 +1,5 @@
+binance:
+  isUS: true
+
+  api-key: xxxx
+  api-secret: xxxx

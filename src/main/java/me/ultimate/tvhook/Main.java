@@ -13,6 +13,7 @@ public class Main {
     public static final String DATA_FOLDER = System.getProperty("user.dir") + (DEVELOPMENT_MODE ? "\\src\\main\\resources\\" : "\\");
     private static final Configuration CONFIG = new Configuration("config.yml");
     private static final LinkedBlockingQueue<Runnable> QUEUE = new LinkedBlockingQueue<>();
+    private static BinanceClient API;
 
 
     public static void main(String[] args) {
@@ -20,6 +21,10 @@ public class Main {
 
         WebhookServer server = new WebhookServer();
         server.start();
+
+        // Login to Binance
+        String loginFile = (DEVELOPMENT_MODE ? "dev-" : "") + "login.yml";
+        API = new BinanceClient(new Configuration(loginFile));
 
         while (true) {
             try {
@@ -44,5 +49,9 @@ public class Main {
 
     public static LinkedBlockingQueue<Runnable> getQueue() {
         return QUEUE;
+    }
+
+    public static BinanceClient getAPI() {
+        return API;
     }
 }

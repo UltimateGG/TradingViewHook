@@ -1,4 +1,4 @@
 server:
   port: 81
-  path: '/trade'
+  signal-path: '/trade'
   token: 'my-private-token'

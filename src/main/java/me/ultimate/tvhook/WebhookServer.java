@@ -4,6 +4,7 @@ import com.binance.api.client.domain.OrderSide;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.ultimate.tvhook.utils.HttpException;
+import me.ultimate.tvhook.utils.Utils;
 import me.ultimate.tvhook.utils.WebhookSignal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,6 +41,11 @@ public class WebhookServer extends Thread {
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             LOGGER.info("Webhook server started on port " + PORT);
+            String prefix = "http" + (PORT == 443 ? "s" : "") + "://";
+            String suffix = (PORT != 80 && PORT != 443 ? ":" + PORT : "") + Main.getConfig().getString("server.signal-path");
+            LOGGER.info("-- Server running on --");
+            LOGGER.info("Local: " + prefix + Utils.getLocalIP() + suffix);
+            LOGGER.info("Public: " + prefix + Utils.getPublicIP() + suffix);
 
             while (true) {
                 try (Socket socket = serverSocket.accept()) {
@@ -93,7 +99,7 @@ public class WebhookServer extends Thread {
             return;
         }
 
-        if (!headers.get("path").equals(Main.getConfig().getString("server.path"))) {
+        if (!headers.get("path").equals(Main.getConfig().getString("server.signal-path"))) {
             LOGGER.warn("Received invalid request with path of: " + headers.get("path"));
             return;
         }
