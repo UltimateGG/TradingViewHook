@@ -1,0 +1,7 @@
+.idea/
+target/
+logs/
+*.log
+*.log.gz
+dev-login.yml
+build/
