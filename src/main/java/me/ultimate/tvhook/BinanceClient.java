@@ -38,7 +38,7 @@ public class BinanceClient {
         return newClient;
     }
 
-    public BinanceApiRestClient get() {
+    public BinanceApiRestClient getClient() {
         return CLIENT;
     }
 
