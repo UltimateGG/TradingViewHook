@@ -1,4 +1,13 @@
 server:
-  port: 81
+  port: 80
   signal-path: '/trade'
   token: 'my-private-token'
+
+trading:
+  max-open-order-time-seconds: 180 # 3 minutes
+
+  buy:
+    percent-of-balance: 20
+
+  sell:
+    percent-of-balance: 100

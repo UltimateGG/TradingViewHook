@@ -30,6 +30,14 @@ public class WebhookSignal {
         return currency;
     }
 
+    public String getCrypto() {
+        return currency.substring(0, 3);
+    }
+
+    public String getFiat() {
+        return currency.substring(3);
+    }
+
     public double getPrice() {
         return price;
     }

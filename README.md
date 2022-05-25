@@ -47,3 +47,4 @@ This is a bot that accepts requests from [TradingView](https://www.tradingview.c
 - TradingView only supports ports 80 and 443
 - TradingView does not support IPv6
 - Currently only supports **LONG** orders. Shorting is dangerous, and not supported as of right now (Short signals will be ignored, and your strategy will work fine as long as it signals to close your long position, and not reverse it)
+- Make sure you delete, and re-add the alert if you modify the strategy (TradingView will not use the new strategy)
