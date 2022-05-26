@@ -5,6 +5,7 @@ server:
 
 trading:
   max-open-order-time-seconds: 180 # 3 minutes
+  fiat: 'USDT'
 
   buy:
     percent-of-balance: 20

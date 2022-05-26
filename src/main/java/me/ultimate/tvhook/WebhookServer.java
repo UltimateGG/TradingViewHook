@@ -137,6 +137,7 @@ public class WebhookServer extends Thread {
         if (!Main.getConfig().getString("server.token").equals(token))
             throw new HttpException(401, "Not authorized");
 
+        if ("FLAT".equals(type)) type = "LONG";
         if (!"LONG".equals(type))
             throw new HttpException(400, "Only LONG positions are supported right now");
 

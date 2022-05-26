@@ -2,6 +2,7 @@ package me.ultimate.tvhook.utils;
 
 import com.binance.api.client.domain.OrderSide;
 import com.google.gson.JsonObject;
+import me.ultimate.tvhook.Main;
 
 public class WebhookSignal {
     private final OrderSide action;
@@ -31,11 +32,11 @@ public class WebhookSignal {
     }
 
     public String getCrypto() {
-        return currency.substring(0, 3);
+        return currency.replace(getFiat(), "");
     }
 
     public String getFiat() {
-        return currency.substring(3);
+        return Main.getConfig().getString("trading.fiat");
     }
 
     public double getPrice() {

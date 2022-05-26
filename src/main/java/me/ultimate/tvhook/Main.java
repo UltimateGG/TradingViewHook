@@ -1,7 +1,10 @@
 package me.ultimate.tvhook;
 
 import com.binance.api.client.domain.OrderSide;
+import com.binance.api.client.domain.OrderStatus;
 import com.binance.api.client.domain.account.NewOrderResponse;
+import com.binance.api.client.domain.event.OrderTradeUpdateEvent;
+import com.binance.api.client.domain.event.UserDataUpdateEvent;
 import me.ultimate.tvhook.utils.Configuration;
 import me.ultimate.tvhook.utils.Utils;
 import me.ultimate.tvhook.utils.WebhookSignal;
@@ -11,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
     public static final boolean DEVELOPMENT_MODE = "dev".equals(System.getProperty("env"));
@@ -32,6 +36,10 @@ public class Main {
         String loginFile = (DEVELOPMENT_MODE ? "dev-" : "") + "login.yml";
         API = new BinanceClient(new Configuration(loginFile));
 
+        LOGGER.info("Started with balance of {} {}", Utils.round(API.getBalance(CONFIG.getString("trading.fiat")), 2), CONFIG.getString("trading.fiat"));
+
+        startListenStream();
+
         while (true) {
             try {
                 QUEUE.take().run();
@@ -39,6 +47,27 @@ public class Main {
                 LOGGER.error("Error while executing task", e);
             }
         }
+    }
+
+    private static void startListenStream() {
+        final String listenKey = API.getClient().startUserDataStream();
+        API.getWebsocket().onUserDataUpdateEvent(listenKey, (UserDataUpdateEvent event) -> {
+            if (event.getEventType() != UserDataUpdateEvent.UserDataUpdateEventType.ORDER_TRADE_UPDATE) return;
+            OrderTradeUpdateEvent e = event.getOrderTradeUpdateEvent();
+
+            double fiat = Double.parseDouble(e.getOriginalQuantity()) * Double.parseDouble(e.getPrice());
+            String order = String.format("[%s] %s %s (%s %s)", e.getSide(), e.getOriginalQuantity(), e.getSymbol(), fiat, CONFIG.getString("trading.fiat"));
+
+            if (e.getOrderStatus() == OrderStatus.FILLED) {
+                LOGGER.info("Order filled! " + order);
+            } else if (e.getOrderStatus() == OrderStatus.EXPIRED) {
+                LOGGER.warn("Order expired! " + order);
+            } else if (e.getOrderStatus() == OrderStatus.REJECTED) {
+                LOGGER.error("Order rejected! {} Reason: {}", order, e.getOrderRejectReason());
+            }
+        });
+
+        SCHEDULER.scheduleAtFixedRate(() -> API.getClient().keepAliveUserDataStream(listenKey), 0, 59, TimeUnit.MINUTES);
     }
 
     public static void onSignal(WebhookSignal signal) {
@@ -58,7 +87,7 @@ public class Main {
                 API.limitBuy(signal.getCurrency(), quantity, signal.getPrice())
                 : API.limitSell(signal.getCurrency(), quantity, signal.getPrice());
 
-        LOGGER.info("Placed {} order for {} {} at {} {}, order status is {}", signal.getAction(), Utils.decToStr(quantity), signal.getCrypto(), signal.getPrice(), signal.getFiat(), res.getStatus());
+        LOGGER.info("Placed {} order for {} {} at {} {}, order status is {}", signal.getAction(), Utils.round(quantity, 6), signal.getCrypto(), signal.getPrice(), signal.getFiat(), res.getStatus());
         LOGGER.info("New Balance: {} {}", API.getBalance(signal.getFiat()), signal.getFiat());
     }
 

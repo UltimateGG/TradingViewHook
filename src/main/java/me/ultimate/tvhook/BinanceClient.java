@@ -65,8 +65,10 @@ public class BinanceClient {
         String quantityString = Utils.convertTradeAmount(quantity, price, symbol);
         String priceString = Utils.decToStr(price);
 
+        NewOrderResponse res = CLIENT.newOrder(NewOrder.limitBuy(symbol, TimeInForce.GTC, quantityString, priceString));
+
         Main.getScheduler().schedule(() -> checkForExpiredOrders(symbol), Main.getConfig().getInt("trading.max-open-order-time-seconds", 180) + 1, TimeUnit.SECONDS);
-        return CLIENT.newOrder(NewOrder.limitBuy(symbol, TimeInForce.GTC, quantityString, priceString));
+        return res;
     }
 
     /** @param price The limit/price to sell at */
@@ -74,8 +76,10 @@ public class BinanceClient {
         String quantityString = Utils.convertTradeAmount(quantity, price, symbol);
         String priceString = Utils.decToStr(price);
 
+        NewOrderResponse res = CLIENT.newOrder(NewOrder.limitSell(symbol, TimeInForce.GTC, quantityString, priceString));
+
         Main.getScheduler().schedule(() -> checkForExpiredOrders(symbol), Main.getConfig().getInt("trading.max-open-order-time-seconds", 180) + 1, TimeUnit.SECONDS);
-        return CLIENT.newOrder(NewOrder.limitSell(symbol, TimeInForce.GTC, quantityString, priceString));
+        return res;
     }
 
     private void checkForExpiredOrders(String symbol) {

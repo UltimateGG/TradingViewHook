@@ -95,6 +95,6 @@ public class Utils {
     }
 
     public static String decToStr(double dec) {
-        return new BigDecimal(dec).toString();
+        return BigDecimal.valueOf(dec).toPlainString();
     }
 }
