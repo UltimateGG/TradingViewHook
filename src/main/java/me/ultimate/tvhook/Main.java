@@ -26,6 +26,7 @@ public class Main {
     private static final LinkedBlockingQueue<Runnable> QUEUE = new LinkedBlockingQueue<>();
     private static final ScheduledExecutorService SCHEDULER = new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "Scheduler"));
     private static BinanceClient API;
+    private static double prevBalance = -1;
 
 
     public static void main(String[] args) {
@@ -59,6 +60,7 @@ public class Main {
     private static void startListenStream() {
         final String listenKey = API.getClient().startUserDataStream();
         API.getWebsocket().onUserDataUpdateEvent(listenKey, (UserDataUpdateEvent event) -> {
+            if (Thread.currentThread().getName().contains("OkHttp")) Thread.currentThread().setName("UserDataUpdateEvent");
             if (event.getEventType() != UserDataUpdateEvent.UserDataUpdateEventType.ORDER_TRADE_UPDATE) return;
             OrderTradeUpdateEvent e = event.getOrderTradeUpdateEvent();
 
@@ -67,6 +69,15 @@ public class Main {
 
             if (e.getOrderStatus() == OrderStatus.FILLED) {
                 LOGGER.info("Order filled! " + order);
+
+                if (e.getSide() == OrderSide.SELL && prevBalance > 0) {
+                    double newBalance = API.getBalance(CONFIG.getString("trading.fiat"));
+                    double profit = newBalance - prevBalance;
+                    String profitString = String.format("Profit: %s %s (%s)", Utils.round(profit, 2), CONFIG.getString("trading.fiat"), (profit > 0 ? "+" : "-") + Utils.round(Math.abs(profit / prevBalance * 100.0D), 2) + "%");
+
+                    LOGGER.info(profitString);
+                    DiscordAlerts.sendEmbed(":money_mouth: SELL Order Filled :money_mouth:", order + "\n" + profitString, profit > 0 ? 0x32e34f : 0xe33232, true);
+                }
             } else if (e.getOrderStatus() == OrderStatus.EXPIRED) {
                 LOGGER.warn("Order expired! " + order);
             } else if (e.getOrderStatus() == OrderStatus.REJECTED) {
@@ -89,7 +100,10 @@ public class Main {
         double quantity = balance * (CONFIG.getDouble("trading."
                 + signal.getAction().toString().toLowerCase() + ".percent-of-balance",
                 isBuy ? 20.0 : 100.0D) / 100.0D);
-        if (isBuy) quantity /= signal.getPrice();
+        if (isBuy) {
+            quantity /= signal.getPrice();
+            prevBalance = balance;
+        }
 
         NewOrderResponse res = isBuy ? API.limitBuy(signal.getCurrency(), quantity, signal.getPrice())
             : API.limitSell(signal.getCurrency(), quantity, signal.getPrice());
