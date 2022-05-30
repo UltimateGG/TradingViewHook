@@ -2,12 +2,18 @@ package me.ultimate.tvhook.utils;
 
 import com.binance.api.client.domain.general.FilterType;
 import com.binance.api.client.domain.general.SymbolFilter;
+import com.binance.api.client.domain.general.SymbolInfo;
 import me.ultimate.tvhook.Main;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Enumeration;
+import java.util.Objects;
 import java.util.Optional;
 
 public class Utils {
@@ -53,13 +59,11 @@ public class Utils {
     }
 
     public static String convertTradeAmount(double amount, double price, String currency) {
-        BigDecimal originalDecimal = BigDecimal.valueOf(amount);
-        int precision = Main.getAPI().getClient().getExchangeInfo().getSymbolInfo(currency).getBaseAssetPrecision(); // Round amount to base precision and LOT_SIZE
+        SymbolInfo info = Main.getAPI().getClient().getExchangeInfo().getSymbolInfo(currency);
+        int precision = info.getBaseAssetPrecision(); // Round amount to base precision and LOT_SIZE
         String lotSize;
-        Optional<String> minQtyOptional = Main.getAPI().getClient().getExchangeInfo().getSymbolInfo(currency)
-                .getFilters().stream().filter(f -> FilterType.LOT_SIZE == f.getFilterType()).findFirst().map(SymbolFilter::getMinQty);
-        Optional<String> minNotational = Main.getAPI().getClient().getExchangeInfo().getSymbolInfo(currency)
-                .getFilters().stream().filter(f -> FilterType.MIN_NOTIONAL == f.getFilterType()).findFirst().map(SymbolFilter::getMinNotional);
+        Optional<String> minQtyOptional = info.getFilters().stream().filter(f -> FilterType.LOT_SIZE == f.getFilterType()).findFirst().map(SymbolFilter::getMinQty);
+        Optional<String> minNotational = info.getFilters().stream().filter(f -> FilterType.MIN_NOTIONAL == f.getFilterType()).findFirst().map(SymbolFilter::getMinNotional);
 
         if (minQtyOptional.isPresent()) {
             lotSize = minQtyOptional.get();
@@ -96,5 +100,25 @@ public class Utils {
 
     public static String decToStr(double dec) {
         return BigDecimal.valueOf(dec).toPlainString();
+    }
+
+    public static void extractConfigFiles() {
+        final String[] configFiles = { "config.yml", "login.yml" };
+
+        try {
+            for (String configFile : configFiles)
+                copyFile(Objects.requireNonNull(Main.class.getResource(configFile)).openStream(), Main.DATA_FOLDER + configFile);
+        } catch (Exception e) {
+            Main.getLogger().error("Failed to extract config files", e);
+            System.exit(1);
+        }
+    }
+
+    public static void copyFile(InputStream in, String target) {
+        try {
+            Files.copy(in, Paths.get(target), StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

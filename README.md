@@ -8,6 +8,7 @@ This is a bot that accepts requests from [TradingView](https://www.tradingview.c
 - Easily manage your bot's strategy from the web, and get accurate and instant back-test results
 - Stop or intervene at **anywhere**, **anytime** by simply disabling or pausing your alerts on TradingView
 - Easily trade **multiple** coins or time-frames at once (Just add multiple alerts)
+- Discord alerts
 
 # Usage
 1. Download the latest build _(No public JAR available yet, clone the repo if you know how to build one for yourself)_

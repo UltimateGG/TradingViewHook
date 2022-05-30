@@ -6,11 +6,13 @@ import com.binance.api.client.domain.account.NewOrderResponse;
 import com.binance.api.client.domain.event.OrderTradeUpdateEvent;
 import com.binance.api.client.domain.event.UserDataUpdateEvent;
 import me.ultimate.tvhook.utils.Configuration;
+import me.ultimate.tvhook.utils.DiscordAlerts;
 import me.ultimate.tvhook.utils.Utils;
 import me.ultimate.tvhook.utils.WebhookSignal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.awt.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -27,13 +29,18 @@ public class Main {
 
 
     public static void main(String[] args) {
-        LOGGER.info("Starting server...");
+        if (!CONFIG.exists()) {
+            Utils.extractConfigFiles();
+            LOGGER.info("Extracted config files, please edit them and restart the program.");
+            return;
+        }
 
+        LOGGER.info("Starting server...");
         WebhookServer server = new WebhookServer();
         server.start();
 
         // Login to Binance
-        String loginFile = (DEVELOPMENT_MODE ? "dev-" : "") + "login.yml";
+        String loginFile = (DEVELOPMENT_MODE ? "../../../dev-" : "") + "login.yml";
         API = new BinanceClient(new Configuration(loginFile));
 
         LOGGER.info("Started with balance of {} {}", Utils.round(API.getBalance(CONFIG.getString("trading.fiat")), 2), CONFIG.getString("trading.fiat"));
@@ -71,7 +78,8 @@ public class Main {
     }
 
     public static void onSignal(WebhookSignal signal) {
-        double balance = API.getBalance(signal.getAction() == OrderSide.BUY ? signal.getFiat() : signal.getCrypto());
+        boolean isBuy = signal.getAction() == OrderSide.BUY;
+        double balance = API.getBalance(isBuy ? signal.getFiat() : signal.getCrypto());
 
         if (balance <= 0.0D) {
             LOGGER.warn("Not enough {} balance to place order", signal.getFiat());
@@ -80,15 +88,19 @@ public class Main {
 
         double quantity = balance * (CONFIG.getDouble("trading."
                 + signal.getAction().toString().toLowerCase() + ".percent-of-balance",
-                signal.getAction() == OrderSide.BUY ? 20.0 : 100.0D) / 100.0D);
-        quantity /= signal.getPrice();
+                isBuy ? 20.0 : 100.0D) / 100.0D);
+        if (isBuy) quantity /= signal.getPrice();
 
-        NewOrderResponse res = (signal.getAction() == OrderSide.BUY) ?
-                API.limitBuy(signal.getCurrency(), quantity, signal.getPrice())
-                : API.limitSell(signal.getCurrency(), quantity, signal.getPrice());
+        NewOrderResponse res = isBuy ? API.limitBuy(signal.getCurrency(), quantity, signal.getPrice())
+            : API.limitSell(signal.getCurrency(), quantity, signal.getPrice());
 
-        LOGGER.info("Placed {} order for {} {} at {} {}, order status is {}", signal.getAction(), Utils.round(quantity, 6), signal.getCrypto(), signal.getPrice(), signal.getFiat(), res.getStatus());
-        LOGGER.info("New Balance: {} {}", API.getBalance(signal.getFiat()), signal.getFiat());
+        if (res == null) return;
+        String order = String.format("Placed %s order for %s %s at %s %s, order status is %s", signal.getAction(), Utils.round(quantity, 6), signal.getCrypto(), signal.getPrice(), signal.getFiat(), res.getStatus());
+        String newBal = String.format("New Balance: %s %s", API.getBalance(signal.getFiat()), signal.getFiat());
+
+        LOGGER.info(order);
+        LOGGER.info(newBal);
+        DiscordAlerts.sendEmbed("Trade Placed", order + "\n`" + newBal + "`", isBuy ? Color.GREEN.getRGB() : Color.RED.getRGB(), CONFIG.getBoolean("trading.alerts.discord.mention-everyone", true));
     }
 
     public static Logger getLogger() {

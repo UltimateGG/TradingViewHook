@@ -6,6 +6,11 @@ server:
 trading:
   max-open-order-time-seconds: 180 # 3 minutes
   fiat: 'USDT'
+  alerts:
+    discord:
+      enabled: false
+      webhook-url: 'https://discord.com/api/webhooks/123/abc'
+      mention-everyone: true
 
   buy:
     percent-of-balance: 20

@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class BinanceClient {
     private BinanceApiClientFactory factory;
     private final BinanceApiRestClient CLIENT;
-    private final BinanceApiWebSocketClient WEBSOCKET; // TODO: Not sure if we need live data
+    private final BinanceApiWebSocketClient WEBSOCKET;
 
 
     public BinanceClient(Configuration config) {
@@ -65,6 +65,7 @@ public class BinanceClient {
         String quantityString = Utils.convertTradeAmount(quantity, price, symbol);
         String priceString = Utils.decToStr(price);
 
+        if (quantityString == null) return null;
         NewOrderResponse res = CLIENT.newOrder(NewOrder.limitBuy(symbol, TimeInForce.GTC, quantityString, priceString));
 
         Main.getScheduler().schedule(() -> checkForExpiredOrders(symbol), Main.getConfig().getInt("trading.max-open-order-time-seconds", 180) + 1, TimeUnit.SECONDS);
@@ -73,9 +74,11 @@ public class BinanceClient {
 
     /** @param price The limit/price to sell at */
     public NewOrderResponse limitSell(String symbol, double quantity, double price) {
+        Main.getLogger().info("Attempting to sell for {} {}", quantity, price);
         String quantityString = Utils.convertTradeAmount(quantity, price, symbol);
         String priceString = Utils.decToStr(price);
 
+        if (quantityString == null) return null;
         NewOrderResponse res = CLIENT.newOrder(NewOrder.limitSell(symbol, TimeInForce.GTC, quantityString, priceString));
 
         Main.getScheduler().schedule(() -> checkForExpiredOrders(symbol), Main.getConfig().getInt("trading.max-open-order-time-seconds", 180) + 1, TimeUnit.SECONDS);
