@@ -15,11 +15,12 @@ This is a bot that accepts requests from [TradingView](https://www.tradingview.c
 2. Run the bot once to generate the files with `java -jar tradingviewhook.jar`
 3. Input your Binance API key and secret in the `login.yml` file
 4. Customize the `config.yml` file to your liking
-5. Head over to the TradingView web panel, make sure you are on your desired time-frame and coin, add your strategy to the chart, and in the **Strategy Tester** tab, click on the Create Alert button (Alarm Clock)
+5. Run the bot again with `java -jar tradingviewhook.jar`
+6. Head over to the TradingView web panel, make sure you are on your desired time-frame and coin, add your strategy to the chart, and in the **Strategy Tester** tab, click on the Create Alert button (Alarm Clock)
 
 ![TradingView Setup](addalert.png "TradingView Setup")
 
-6. In the edit alert modal:
+7. In the edit alert modal:
   - Set the expiration time as far ahead as possible (Or if you have a paid account, check the Open-ended box) 
   - Check the **Webhook URL** box
   - Copy the _public_ url given to you by the bot, and paste it into the box below the checkbox
@@ -37,7 +38,6 @@ This is a bot that accepts requests from [TradingView](https://www.tradingview.c
 
 ![Customize Alert](modifyalert.png "Customize Alert")
 
-7. Run the bot 24/7 with `java -jar tradingviewhook.jar`
 8. **Profit**
 
 # Toubleshooting
