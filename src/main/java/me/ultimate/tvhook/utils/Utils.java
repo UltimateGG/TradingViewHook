@@ -107,7 +107,7 @@ public class Utils {
 
         try {
             for (String configFile : configFiles)
-                copyFile(Objects.requireNonNull(Main.class.getResource(configFile)).openStream(), Main.DATA_FOLDER + configFile);
+                copyFile(Objects.requireNonNull(Main.class.getResource("/" + configFile)).openStream(), Main.DATA_FOLDER + configFile);
         } catch (Exception e) {
             Main.getLogger().error("Failed to extract config files", e);
             System.exit(1);
