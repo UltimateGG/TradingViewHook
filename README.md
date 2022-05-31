@@ -34,7 +34,7 @@ This is a bot that accepts requests from [TradingView](https://www.tradingview.c
           "token": "(your-random-string-here)"
       }
        ```
-  - Click the **Save** button
+  - Click the **Save** button (Note: For market orders, set price to "MKT" or -1)
 
 ![Customize Alert](modifyalert.png "Customize Alert")
 
@@ -47,7 +47,8 @@ Available placeholders in discord alerts. Some may not be available for on-order
 - {type} - The order type (market/limit)
 - {quantity} - The quantity of the order (Ex 0.056 BTC or 15.25 USDT)
 - {crypto} - The crypto currency (Ex BTC, ETH, BNB, etc)
-- {price} - The price the order was executed at (Ex 26,251.00 USDT)
+- {limit} - The price the order was executed at (Ex 26,251.00 USDT)
+- {price} - The cost of the order (Ex 25.00 USDT)
 - {fiat} - The fiat currency (Ex USDT, USD, EUR, etc)
 - {bal_fiat} - The new fiat currency balance (Ex $1,000.00)
 - {isbuy} - If the order was a buy order "true" or "false"

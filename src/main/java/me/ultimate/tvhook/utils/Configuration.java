@@ -61,11 +61,15 @@ public class Configuration {
 
     public int getInt(String path, int def) {
         Object obj = get(path);
+
+        if (obj instanceof Double) return (int) Math.round((double) obj);
         return (obj instanceof Integer) ? (int) obj : def;
     }
 
     public double getDouble(String path, double def) {
         Object obj = get(path);
+
+        if (obj instanceof Integer) return (int) obj;
         return (obj instanceof Double) ? (double) obj : def;
     }
 
