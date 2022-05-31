@@ -20,9 +20,9 @@ trading:
     on-order-filled:
       enabled: true
       content: '@everyone'
-      title: '{if(isbuy, :open_circle:, :money_mouth:)} {upper(side)} Order Filled {if(isbuy, :open_circle:, :money_mouth:)}'
+      title: '{if(isbuy, :green_circle:, :money_mouth:)} {upper(side)} Order Filled {if(isbuy, :green_circle:, :money_mouth:)}'
       color: '{if(isbuy, LIGHT_BLUE, profit_color)}'
-      description: '[{side}] {quantity} {symbol} ({bal_fiat} {fiat})'
+      description: '[{side}] `{quantity}` {symbol} ({bal_fiat} {fiat})'
       description-if-sell: '\n**Profit:** {profit} {fiat} (**{profit_percent}**)'
 
     on-order-rejected:

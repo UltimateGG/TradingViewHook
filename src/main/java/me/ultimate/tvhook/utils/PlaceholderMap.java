@@ -5,6 +5,11 @@ import java.util.HashMap;
 public class PlaceholderMap {
     private final HashMap<String, String> PLACEHOLDERS = new HashMap<>();
 
+
+    public PlaceholderMap() {
+        add("newline", "\n");
+    }
+
     public static PlaceholderMap builder() {
         return new PlaceholderMap();
     }
@@ -27,6 +32,7 @@ public class PlaceholderMap {
     }
 
     public String apply(String text) {
+        if (text == null) return "";
         for (int i = 0; i < text.length(); i++) {
             if (text.charAt(i) != '{' || (i > 1 && text.charAt(i - 1) == '\\')) continue;
 
@@ -38,7 +44,7 @@ public class PlaceholderMap {
             String key = inner.contains("(") ? inner.substring(inner.indexOf('(') + 1, inner.length() - 1) : inner;
             key = key.toLowerCase();
 
-            if (function != null) {
+            if (function != null && contains(key)) {
                 function = function.toLowerCase();
                 String[] args = key.split(",");
 

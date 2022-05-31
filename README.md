@@ -40,6 +40,29 @@ This is a bot that accepts requests from [TradingView](https://www.tradingview.c
 
 8. **Profit**
 
+# Alert Placeholders
+Available placeholders in discord alerts. Some may not be available for on-order-placed.
+- {newline} - A newline character, only works in the description field
+- {side} - The order side (buy/sell)
+- {type} - The order type (market/limit)
+- {quantity} - The quantity of the order (Ex 0.056 BTC or 15.25 USDT)
+- {crypto} - The crypto currency (Ex BTC, ETH, BNB, etc)
+- {price} - The price the order was executed at (Ex 26,251.00 USDT)
+- {fiat} - The fiat currency (Ex USDT, USD, EUR, etc)
+- {bal_fiat} - The new fiat currency balance (Ex $1,000.00)
+- {isbuy} - If the order was a buy order "true" or "false"
+- {symbol} - The symbol of the order (Ex BTCUSDT)
+- Only for sell orders on fill:
+  - {profit} - The profit of the order (Ex 24.46 USDT or -0.26 USDT)
+  - {profit_percent} - The profit percentage of the order (Ex 0.25% or -1.25%)
+  - {profit_color} - The color of the profit, auto set to a red or green color
+- {reason} - If the order was rejected, the reason why
+
+### Functions
+- upper(placeholder) - Returns the placeholder in all caps
+- lower(placeholder) - Returns the placeholder in all lowercase
+- if(placeholder, true_val, false_val) - If the placeholder resolves to "true" returns the true_val, otherwise returns the false_val
+
 # Toubleshooting
 - Make sure that your server's url can be reached publicly
 - **If you are testing the endpoint**: The server does not respond to requests with an un-whitelisted IP. (Even localhost)

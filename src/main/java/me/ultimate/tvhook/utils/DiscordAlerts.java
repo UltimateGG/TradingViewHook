@@ -17,7 +17,7 @@ public class DiscordAlerts {
         JsonArray embeds = new JsonArray();
 
         JsonObject embed = new JsonObject();
-        String key = "trading.alerts.on-" + (reason == OrderStatus.NEW ? "placed" : reason.toString().toLowerCase());
+        String key = "trading.alerts.on-order-" + (reason == OrderStatus.NEW ? "placed" : reason.toString().toLowerCase());
         Configuration config = Main.getConfig();
 
         if (!config.getBoolean(key + ".enabled", true)) return;
@@ -26,7 +26,7 @@ public class DiscordAlerts {
 
         String desc = map.apply(config.getString(key + ".description"));
         if ("false".equals(map.get("isbuy"))) desc += map.apply(config.getString(key + ".description-if-sell"));
-        embed.addProperty("description", desc);
+        embed.addProperty("description", desc.replace("\\n", "\n"));
 
         String col = map.apply(config.getString(key + ".color"));
         int parsedCol = Utils.getColor(col);

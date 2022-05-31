@@ -15,7 +15,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
-    public static final String VERSION = "0.0.1";
+    public static final String VERSION = "0.0.2";
     public static final boolean DEVELOPMENT_MODE = "dev".equals(System.getProperty("env"));
     private static final Logger LOGGER = LogManager.getLogger("Main");
     public static final String DATA_FOLDER = System.getProperty("user.dir") + (DEVELOPMENT_MODE ? "\\src\\main\\resources\\" : "\\");
@@ -42,8 +42,7 @@ public class Main {
         String loginFile = (DEVELOPMENT_MODE ? "../../../dev-" : "") + "login.yml";
         API = new BinanceClient(new Configuration(loginFile));
 
-        prevBalance = API.getBalance(CONFIG.getString("trading.fiat"));
-        LOGGER.info("Started with balance of {} {}", Utils.round(prevBalance, 2), CONFIG.getString("trading.fiat"));
+        LOGGER.info("Started with balance of {} {}", Utils.round(API.getBalance(CONFIG.getString("trading.fiat")), 2), CONFIG.getString("trading.fiat"));
 
         startListenStream();
 
@@ -76,7 +75,7 @@ public class Main {
 
             if (e.getSide() == OrderSide.SELL) {
                 double newBalance = API.getBalance(CONFIG.getString("trading.fiat"));
-                double profit = newBalance - prevBalance;
+                double profit = newBalance - (prevBalance < 0 ? newBalance : prevBalance);
 
                 map.add("profit", Utils.round(profit, 2));
                 map.add("profit_color", profit > 0 ? String.valueOf(Utils.GREEN) : String.valueOf(Utils.RED));
