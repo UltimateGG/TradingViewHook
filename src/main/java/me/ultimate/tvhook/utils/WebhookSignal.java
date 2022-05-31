@@ -43,6 +43,10 @@ public class WebhookSignal {
         return price;
     }
 
+    public boolean isMarketOrder() {
+        return price < 0.0;
+    }
+
     /** May be null if no extra data was sent in the request */
     public JsonObject getCustomPayload() {
         return customPayload;

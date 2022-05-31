@@ -17,6 +17,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class Utils {
+    public static final int BLUE = 0x377fc;
+    public static final int LIGHT_BLUE = 0x0099ff;
+    public static final int RED = 0xe33232;
+    public static final int GREEN = 0x32e34f;
+
     public static String getLocalIP() {
         String ip = "";
 
@@ -58,7 +63,7 @@ public class Utils {
         return ip;
     }
 
-    public static String convertTradeAmount(double amount, double price, String currency) {
+    public static String convertTradeAmount(double amount, String currency) {
         SymbolInfo info = Main.getAPI().getClient().getExchangeInfo().getSymbolInfo(currency);
         int precision = info.getBaseAssetPrecision(); // Round amount to base precision and LOT_SIZE
         String lotSize;
@@ -82,7 +87,7 @@ public class Utils {
         String convertedAmount = new BigDecimal(lotSize).multiply(new BigDecimal((int) (amount / minQtyDouble))).setScale(precision, RoundingMode.HALF_DOWN).toString();
 
         if (minNotational.isPresent()) {
-            double notational = Double.parseDouble(convertedAmount) * price;
+            double notational = Double.parseDouble(convertedAmount) * Double.parseDouble(Main.getAPI().getClient().getPrice(currency).getPrice());
             if (notational < Double.parseDouble(minNotational.get())) {
                 Main.getLogger().error("Notational value {} is smaller than minimum {}", round(notational, 2), minNotational.get());
                 return null;

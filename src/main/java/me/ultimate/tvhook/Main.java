@@ -12,7 +12,6 @@ import me.ultimate.tvhook.utils.WebhookSignal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.awt.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -65,7 +64,7 @@ public class Main {
             OrderTradeUpdateEvent e = event.getOrderTradeUpdateEvent();
 
             double fiat = Double.parseDouble(e.getOriginalQuantity()) * Double.parseDouble(e.getPrice());
-            String order = String.format("[%s] %s %s (%s %s)", e.getSide(), e.getOriginalQuantity(), e.getSymbol(), fiat, CONFIG.getString("trading.fiat"));
+            String order = String.format("[%s] %s %s (%s %s)", e.getSide(), e.getOriginalQuantity(), e.getSymbol(), Utils.round(fiat, 2), CONFIG.getString("trading.fiat"));
 
             if (e.getOrderStatus() == OrderStatus.FILLED) {
                 LOGGER.info("Order filled! " + order);
@@ -73,10 +72,12 @@ public class Main {
                 if (e.getSide() == OrderSide.SELL && prevBalance > 0) {
                     double newBalance = API.getBalance(CONFIG.getString("trading.fiat"));
                     double profit = newBalance - prevBalance;
-                    String profitString = String.format("Profit: %s %s (%s)", Utils.round(profit, 2), CONFIG.getString("trading.fiat"), (profit > 0 ? "+" : "-") + Utils.round(Math.abs(profit / prevBalance * 100.0D), 2) + "%");
+                    String profitString = String.format("Profit: %s %s **(%s)**", Utils.round(profit, 2), CONFIG.getString("trading.fiat"), (profit > 0 ? "+" : "-") + Utils.round(Math.abs(profit / prevBalance * 100.0D), 2) + "%");
 
                     LOGGER.info(profitString);
-                    DiscordAlerts.sendEmbed(":money_mouth: SELL Order Filled :money_mouth:", order + "\n" + profitString, profit > 0 ? 0x32e34f : 0xe33232, true);
+                    DiscordAlerts.sendEmbed(":money_mouth: SELL Order Filled :money_mouth:", order + "\n" + profitString, profit > 0 ? Utils.GREEN : Utils.RED, CONFIG.getBoolean("trading.alerts.discord.mention-everyone", true));
+                } else if (e.getSide() == OrderSide.BUY) {
+                    DiscordAlerts.sendEmbed(":green_circle: BUY Order Filled :green_circle:", order, Utils.BLUE, CONFIG.getBoolean("trading.alerts.discord.mention-everyone", true));
                 }
             } else if (e.getOrderStatus() == OrderStatus.EXPIRED) {
                 LOGGER.warn("Order expired! " + order);
@@ -99,22 +100,21 @@ public class Main {
 
         double quantity = balance * (CONFIG.getDouble("trading."
                 + signal.getAction().toString().toLowerCase() + ".percent-of-balance",
-                isBuy ? 20.0 : 100.0D) / 100.0D);
+                isBuy ? 20.0D : 100.0D) / 100.0D);
         if (isBuy) {
-            quantity /= signal.getPrice();
+            quantity /= signal.isMarketOrder() ? Double.parseDouble(API.getClient().getPrice(signal.getCurrency()).getPrice()) : signal.getPrice();
             prevBalance = balance;
         }
 
-        NewOrderResponse res = isBuy ? API.limitBuy(signal.getCurrency(), quantity, signal.getPrice())
-            : API.limitSell(signal.getCurrency(), quantity, signal.getPrice());
-
+        NewOrderResponse res = API.placeOrder(signal.getAction(), signal.getCurrency(), quantity, signal.getPrice(), signal.isMarketOrder());
         if (res == null) return;
-        String order = String.format("Placed %s order for %s %s at %s %s, order status is %s", signal.getAction(), Utils.round(quantity, 6), signal.getCrypto(), signal.getPrice(), signal.getFiat(), res.getStatus());
+
+        String order = String.format("Placed %s-%s order for %s %s at %s %s, order status is %s", signal.isMarketOrder() ? "MARKET" : "LIMIT", signal.getAction(), Utils.round(quantity, 6), signal.getCrypto(), signal.getPrice(), signal.getFiat(), res.getStatus());
         String newBal = String.format("New Balance: %s %s", API.getBalance(signal.getFiat()), signal.getFiat());
 
         LOGGER.info(order);
         LOGGER.info(newBal);
-        DiscordAlerts.sendEmbed("Trade Placed", order + "\n`" + newBal + "`", isBuy ? Color.GREEN.getRGB() : Color.RED.getRGB(), CONFIG.getBoolean("trading.alerts.discord.mention-everyone", true));
+        DiscordAlerts.sendEmbed("Trade Placed", order + "\n`" + newBal + "`", Utils.LIGHT_BLUE, false);
     }
 
     public static Logger getLogger() {

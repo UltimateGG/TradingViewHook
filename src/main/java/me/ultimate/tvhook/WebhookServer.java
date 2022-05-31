@@ -131,7 +131,9 @@ public class WebhookServer extends Thread {
         String action = message.get("action").getAsString().toUpperCase();
         String type = message.get("type").getAsString().toUpperCase();
         String currency = message.get("currency").getAsString();
-        double price = message.get("price").getAsDouble();
+        String priceStr = message.get("price").getAsString().toUpperCase();
+        boolean isMkt = priceStr.equals("MKT") || priceStr.equals("MARKET");
+        double price = isMkt ? -1 : message.get("price").getAsDouble();
         String token = message.get("token").getAsString();
 
         if (!Main.getConfig().getString("server.token").equals(token))
@@ -141,7 +143,7 @@ public class WebhookServer extends Thread {
         if (!"LONG".equals(type))
             throw new HttpException(400, "Only LONG positions are supported right now");
 
-        if (currency == null || currency.isEmpty() || price <= 0.0D)
+        if (currency == null || currency.isEmpty())
             throw new HttpException(400, "Invalid parameters");
 
         message.remove("action");

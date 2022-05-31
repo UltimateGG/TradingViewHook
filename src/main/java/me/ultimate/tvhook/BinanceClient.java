@@ -4,6 +4,7 @@ import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.BinanceApiWebSocketClient;
 import com.binance.api.client.config.BinanceApiConfig;
+import com.binance.api.client.domain.OrderSide;
 import com.binance.api.client.domain.TimeInForce;
 import com.binance.api.client.domain.account.NewOrder;
 import com.binance.api.client.domain.account.NewOrderResponse;
@@ -60,26 +61,43 @@ public class BinanceClient {
         return Double.parseDouble(CLIENT.getAccount().getAssetBalance(symbol).getFree());
     }
 
+    public NewOrderResponse placeOrder(OrderSide side, String symbol, double quantity, double price, boolean isMarket) {
+        return side == OrderSide.BUY ? buy(symbol, quantity, price, isMarket) : sell(symbol, quantity, price, isMarket);
+    }
+
+    public NewOrderResponse buy(String symbol, double quantity, double price, boolean isMarket) {
+        return isMarket ? market(OrderSide.BUY, symbol, quantity)
+                : limit(OrderSide.BUY, symbol, quantity, price);
+    }
+
+    public NewOrderResponse sell(String symbol, double quantity, double price, boolean isMarket) {
+        return isMarket ? market(OrderSide.SELL, symbol, quantity)
+                : limit(OrderSide.SELL, symbol, quantity, price);
+    }
+
     /** @param price The limit/price to purchase at */
-    public NewOrderResponse limitBuy(String symbol, double quantity, double price) {
-        String quantityString = Utils.convertTradeAmount(quantity, price, symbol);
+    public NewOrderResponse limit(OrderSide side, String symbol, double quantity, double price) {
+        String quantityString = Utils.convertTradeAmount(quantity, symbol);
         String priceString = Utils.decToStr(price);
 
         if (quantityString == null) return null;
-        NewOrderResponse res = CLIENT.newOrder(NewOrder.limitBuy(symbol, TimeInForce.GTC, quantityString, priceString));
+        NewOrderResponse res = CLIENT.newOrder(
+                side == OrderSide.BUY ? NewOrder.limitBuy(symbol, TimeInForce.GTC, quantityString, priceString)
+                        : NewOrder.limitSell(symbol, TimeInForce.GTC, quantityString, priceString)
+        );
 
         Main.getScheduler().schedule(() -> checkForExpiredOrders(symbol), Main.getConfig().getInt("trading.max-open-order-time-seconds", 180) + 1, TimeUnit.SECONDS);
         return res;
     }
 
-    /** @param price The limit/price to sell at */
-    public NewOrderResponse limitSell(String symbol, double quantity, double price) {
-        Main.getLogger().info("Attempting to sell for {} {}", quantity, price);
-        String quantityString = Utils.convertTradeAmount(quantity, price, symbol);
-        String priceString = Utils.decToStr(price);
+    public NewOrderResponse market(OrderSide side, String symbol, double quantity) {
+        String quantityString = Utils.convertTradeAmount(quantity, symbol);
 
         if (quantityString == null) return null;
-        NewOrderResponse res = CLIENT.newOrder(NewOrder.limitSell(symbol, TimeInForce.GTC, quantityString, priceString));
+        NewOrderResponse res = CLIENT.newOrder(
+                side == OrderSide.BUY ? NewOrder.marketBuy(symbol, quantityString)
+                        : NewOrder.marketSell(symbol, quantityString)
+        );
 
         Main.getScheduler().schedule(() -> checkForExpiredOrders(symbol), Main.getConfig().getInt("trading.max-open-order-time-seconds", 180) + 1, TimeUnit.SECONDS);
         return res;
