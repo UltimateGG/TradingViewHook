@@ -1,5 +1,6 @@
 package me.ultimate.tvhook.utils;
 
+import com.binance.api.client.domain.OrderStatus;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import me.ultimate.tvhook.Main;
@@ -11,33 +12,39 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class DiscordAlerts {
-    public static void sendAlert(String message) {
-        JsonObject json = new JsonObject();
-        json.addProperty("content", message);
-
-        sendAlert(json);
-    }
-
-    public static void sendEmbed(String title, String description, int color, boolean mention) {
+    public static void sendAlert(OrderStatus reason, PlaceholderMap map) {
         JsonObject json = new JsonObject();
         JsonArray embeds = new JsonArray();
 
         JsonObject embed = new JsonObject();
-        embed.addProperty("title", title);
-        embed.addProperty("description", description);
-        embed.addProperty("color", color);
-        embeds.add(embed);
+        String key = "trading.alerts.on-" + (reason == OrderStatus.NEW ? "placed" : reason.toString().toLowerCase());
+        Configuration config = Main.getConfig();
 
+        if (!config.getBoolean(key + ".enabled", true)) return;
+
+        embed.addProperty("title", map.apply(config.getString(key + ".title")));
+
+        String desc = map.apply(config.getString(key + ".description"));
+        if ("false".equals(map.get("isbuy"))) desc += map.apply(config.getString(key + ".description-if-sell"));
+        embed.addProperty("description", desc);
+
+        String col = map.apply(config.getString(key + ".color"));
+        int parsedCol = Utils.getColor(col);
+        embed.addProperty("color", parsedCol > 0 ? parsedCol : Integer.parseInt(col));
+
+        embeds.add(embed);
         json.add("embeds", embeds);
-        if (mention) json.addProperty("content", "@everyone");
+
+        String content = config.getString(key + ".content");
+        if (content != null && !content.isEmpty()) json.addProperty("content", content);
         sendAlert(json);
     }
 
     public static void sendAlert(JsonObject message) {
-        if (!Main.getConfig().getBoolean("trading.alerts.discord.enabled", false)) return;
+        if (!Main.getConfig().getBoolean("trading.alerts.enabled", false)) return;
 
         try {
-            URI url = new URL(Main.getConfig().getString("trading.alerts.discord.webhook-url")).toURI();
+            URI url = new URL(Main.getConfig().getString("trading.alerts.webhook-url")).toURI();
 
             HttpRequest req = HttpRequest.newBuilder(url)
             .header("Content-Type", "application/json")

@@ -5,10 +5,7 @@ import com.binance.api.client.domain.OrderStatus;
 import com.binance.api.client.domain.account.NewOrderResponse;
 import com.binance.api.client.domain.event.OrderTradeUpdateEvent;
 import com.binance.api.client.domain.event.UserDataUpdateEvent;
-import me.ultimate.tvhook.utils.Configuration;
-import me.ultimate.tvhook.utils.DiscordAlerts;
-import me.ultimate.tvhook.utils.Utils;
-import me.ultimate.tvhook.utils.WebhookSignal;
+import me.ultimate.tvhook.utils.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,6 +15,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
+    public static final String VERSION = "0.0.1";
     public static final boolean DEVELOPMENT_MODE = "dev".equals(System.getProperty("env"));
     private static final Logger LOGGER = LogManager.getLogger("Main");
     public static final String DATA_FOLDER = System.getProperty("user.dir") + (DEVELOPMENT_MODE ? "\\src\\main\\resources\\" : "\\");
@@ -29,6 +27,7 @@ public class Main {
 
 
     public static void main(String[] args) {
+        LOGGER.info("TradingViewHook v" + VERSION);
         if (!CONFIG.exists()) {
             Utils.extractConfigFiles();
             LOGGER.info("Extracted config files, please edit them and restart the program.");
@@ -43,7 +42,8 @@ public class Main {
         String loginFile = (DEVELOPMENT_MODE ? "../../../dev-" : "") + "login.yml";
         API = new BinanceClient(new Configuration(loginFile));
 
-        LOGGER.info("Started with balance of {} {}", Utils.round(API.getBalance(CONFIG.getString("trading.fiat")), 2), CONFIG.getString("trading.fiat"));
+        prevBalance = API.getBalance(CONFIG.getString("trading.fiat"));
+        LOGGER.info("Started with balance of {} {}", Utils.round(prevBalance, 2), CONFIG.getString("trading.fiat"));
 
         startListenStream();
 
@@ -64,32 +64,45 @@ public class Main {
             OrderTradeUpdateEvent e = event.getOrderTradeUpdateEvent();
 
             double fiat = Double.parseDouble(e.getOriginalQuantity()) * Double.parseDouble(e.getPrice());
-            String order = String.format("[%s] %s %s (%s %s)", e.getSide(), e.getOriginalQuantity(), e.getSymbol(), Utils.round(fiat, 2), CONFIG.getString("trading.fiat"));
+            PlaceholderMap map = PlaceholderMap.builder()
+                    .add("side", e.getSide().toString())
+                    .add("isbuy", e.getSide() == OrderSide.BUY ? "true" : "false")
+                    .add("quantity", e.getOriginalQuantity())
+                    .add("price", e.getPrice())
+                    .add("symbol", e.getSymbol())
+                    .add("bal_fiat", Utils.round(fiat, 2))
+                    .add("fiat", CONFIG.getString("trading.fiat"));
+            String order = map.apply("[{side}] {quantity} {symbol} ({bal_fiat} {fiat})");
+
+            if (e.getSide() == OrderSide.SELL) {
+                double newBalance = API.getBalance(CONFIG.getString("trading.fiat"));
+                double profit = newBalance - prevBalance;
+
+                map.add("profit", Utils.round(profit, 2));
+                map.add("profit_color", profit > 0 ? String.valueOf(Utils.GREEN) : String.valueOf(Utils.RED));
+                map.add("profit_percent", (profit > 0 ? "+" : "-") + Utils.round(Math.abs(profit / prevBalance * 100.0D), 2) + "%");
+            }
 
             if (e.getOrderStatus() == OrderStatus.FILLED) {
                 LOGGER.info("Order filled! " + order);
+                DiscordAlerts.sendAlert(OrderStatus.FILLED, map);
 
-                if (e.getSide() == OrderSide.SELL && prevBalance > 0) {
-                    double newBalance = API.getBalance(CONFIG.getString("trading.fiat"));
-                    double profit = newBalance - prevBalance;
-                    String profitString = String.format("Profit: %s %s **(%s)**", Utils.round(profit, 2), CONFIG.getString("trading.fiat"), (profit > 0 ? "+" : "-") + Utils.round(Math.abs(profit / prevBalance * 100.0D), 2) + "%");
-
-                    LOGGER.info(profitString);
-                    DiscordAlerts.sendEmbed(":money_mouth: SELL Order Filled :money_mouth:", order + "\n" + profitString, profit > 0 ? Utils.GREEN : Utils.RED, CONFIG.getBoolean("trading.alerts.discord.mention-everyone", true));
-                } else if (e.getSide() == OrderSide.BUY) {
-                    DiscordAlerts.sendEmbed(":green_circle: BUY Order Filled :green_circle:", order, Utils.BLUE, CONFIG.getBoolean("trading.alerts.discord.mention-everyone", true));
-                }
+                if (e.getSide() == OrderSide.SELL && prevBalance > 0)
+                    LOGGER.info(map.apply("Profit: {profit} {fiat} **({profit_percent})**"));
             } else if (e.getOrderStatus() == OrderStatus.EXPIRED) {
                 LOGGER.warn("Order expired! " + order);
+                DiscordAlerts.sendAlert(OrderStatus.EXPIRED, map);
             } else if (e.getOrderStatus() == OrderStatus.REJECTED) {
+                map.add("reason", e.getOrderRejectReason().toString());
                 LOGGER.error("Order rejected! {} Reason: {}", order, e.getOrderRejectReason());
+                DiscordAlerts.sendAlert(OrderStatus.REJECTED, map);
             }
         });
 
         SCHEDULER.scheduleAtFixedRate(() -> API.getClient().keepAliveUserDataStream(listenKey), 0, 59, TimeUnit.MINUTES);
     }
 
-    public static void onSignal(WebhookSignal signal) {
+    public static void onSignal(Signal signal) {
         boolean isBuy = signal.getAction() == OrderSide.BUY;
         double balance = API.getBalance(isBuy ? signal.getFiat() : signal.getCrypto());
 
@@ -109,12 +122,19 @@ public class Main {
         NewOrderResponse res = API.placeOrder(signal.getAction(), signal.getCurrency(), quantity, signal.getPrice(), signal.isMarketOrder());
         if (res == null) return;
 
-        String order = String.format("Placed %s-%s order for %s %s at %s %s, order status is %s", signal.isMarketOrder() ? "MARKET" : "LIMIT", signal.getAction(), Utils.round(quantity, 6), signal.getCrypto(), signal.getPrice(), signal.getFiat(), res.getStatus());
-        String newBal = String.format("New Balance: %s %s", API.getBalance(signal.getFiat()), signal.getFiat());
+        double newBal = API.getBalance(signal.getFiat());
 
-        LOGGER.info(order);
-        LOGGER.info(newBal);
-        DiscordAlerts.sendEmbed("Trade Placed", order + "\n`" + newBal + "`", Utils.LIGHT_BLUE, false);
+        LOGGER.info("Placed {}-{} order for {} {} at {} {}, order status is {}", signal.isMarketOrder() ? "MARKET" : "LIMIT", signal.getAction(), Utils.round(quantity, 6), signal.getCrypto(), signal.getPrice(), signal.getFiat(), res.getStatus());
+        LOGGER.info("New Balance: {} {}", newBal, signal.getFiat());
+        DiscordAlerts.sendAlert(OrderStatus.NEW, PlaceholderMap.builder()
+                .add("type", signal.isMarketOrder() ? "MARKET" : "LIMIT")
+                .add("side", signal.getAction().toString())
+                .add("isbuy", isBuy ? "true" : "false")
+                .add("quantity", Utils.round(quantity, 6))
+                .add("crypto", signal.getCrypto())
+                .add("price", Utils.decToStr(signal.getPrice()))
+                .add("fiat", signal.getFiat())
+                .add("bal_fiat", Utils.round(newBal, 2)));
     }
 
     public static Logger getLogger() {

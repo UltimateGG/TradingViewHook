@@ -4,8 +4,8 @@ import com.binance.api.client.domain.OrderSide;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.ultimate.tvhook.utils.HttpException;
+import me.ultimate.tvhook.utils.Signal;
 import me.ultimate.tvhook.utils.Utils;
-import me.ultimate.tvhook.utils.WebhookSignal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,7 +24,7 @@ public class WebhookServer extends Thread {
             "34.212.75.30",
             "54.218.53.128",
             "52.32.178.7",
-            Main.DEVELOPMENT_MODE ? "0:0:0:0:0:0:0:1" : "no-ip"
+            Boolean.parseBoolean(System.getProperty("allowLocalHost")) ? "0:0:0:0:0:0:0:1" : "no-ip"
     };
     private static final int PORT = Main.getConfig().getInt("server.port", 80);
     private static final Logger LOGGER = LogManager.getLogger("Server");
@@ -152,7 +152,7 @@ public class WebhookServer extends Thread {
         message.remove("price");
         message.remove("token");
 
-        WebhookSignal signal = new WebhookSignal(OrderSide.valueOf(action), type, currency, price, message.size() > 0 ? message : null);
+        Signal signal = new Signal(OrderSide.valueOf(action), type, currency, price, message.size() > 0 ? message : null);
         LOGGER.info("Received signal: " + signal);
 
         Main.getQueue().add(() -> Main.onSignal(signal));

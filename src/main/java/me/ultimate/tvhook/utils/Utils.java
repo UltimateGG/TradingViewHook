@@ -21,6 +21,25 @@ public class Utils {
     public static final int LIGHT_BLUE = 0x0099ff;
     public static final int RED = 0xe33232;
     public static final int GREEN = 0x32e34f;
+    public static final int YELLOW = 0xe9f904;
+
+
+    public static int getColor(String s) {
+        switch (s.toLowerCase()) {
+            case "blue":
+                return BLUE;
+            case "light_blue":
+                return LIGHT_BLUE;
+            case "red":
+                return RED;
+            case "green":
+                return GREEN;
+            case "yellow":
+                return YELLOW;
+            default:
+                return -1;
+        }
+    }
 
     public static String getLocalIP() {
         String ip = "";
@@ -95,6 +114,12 @@ public class Utils {
         }
 
         return convertedAmount;
+    }
+
+    public static String getCorrectPrecision(double amount, String currency) {
+        SymbolInfo info = Main.getAPI().getClient().getExchangeInfo().getSymbolInfo(currency);
+        int precision = info.getBaseAssetPrecision();
+        return new BigDecimal(amount).setScale(precision, RoundingMode.HALF_DOWN).toString();
     }
 
     public static String round(double value, int places) {

@@ -78,7 +78,7 @@ public class BinanceClient {
     /** @param price The limit/price to purchase at */
     public NewOrderResponse limit(OrderSide side, String symbol, double quantity, double price) {
         String quantityString = Utils.convertTradeAmount(quantity, symbol);
-        String priceString = Utils.decToStr(price);
+        String priceString = Utils.getCorrectPrecision(price, symbol);
 
         if (quantityString == null) return null;
         NewOrderResponse res = CLIENT.newOrder(

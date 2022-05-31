@@ -3,7 +3,6 @@ package me.ultimate.tvhook.utils;
 import me.ultimate.tvhook.Main;
 import org.yaml.snakeyaml.Yaml;
 
-import java.awt.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -76,9 +75,9 @@ public class Configuration {
     }
 
     // Java
-    public Color getColor(String path, Color def) {
-        int col = getInt(path, def.getRGB());
-        return new Color(col);
+    public int getColor(String path, int def) {
+        int uc = Utils.getColor(getString(path));
+        return uc > 0 ? uc : getInt(path, def);
     }
 
     @SuppressWarnings("unchecked")

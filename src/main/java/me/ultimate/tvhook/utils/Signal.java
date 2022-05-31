@@ -4,14 +4,14 @@ import com.binance.api.client.domain.OrderSide;
 import com.google.gson.JsonObject;
 import me.ultimate.tvhook.Main;
 
-public class WebhookSignal {
+public class Signal {
     private final OrderSide action;
     private final String type;
     private final String currency;
     private final double price;
     private final JsonObject customPayload;
 
-    public WebhookSignal(OrderSide action, String type, String currency, double price, JsonObject customPayload) {
+    public Signal(OrderSide action, String type, String currency, double price, JsonObject customPayload) {
         this.action = action;
         this.type = type;
         this.currency = currency;
@@ -53,6 +53,6 @@ public class WebhookSignal {
     }
 
     public String toString() {
-        return "WebhookSignal: " + action + " " + type + " " + currency + " " + price;
+        return "Signal: " + action + " " + type + " " + currency + " " + price;
     }
 }

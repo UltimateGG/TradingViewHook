@@ -7,10 +7,37 @@ trading:
   max-open-order-time-seconds: 180 # 3 minutes
   fiat: 'USDT'
   alerts:
-    discord:
-      enabled: false
-      webhook-url: 'https://discord.com/api/webhooks/123/abc'
-      mention-everyone: true
+    enabled: false
+    webhook-url: 'https://discord.com/api/webhooks/123/abc'
+
+    on-order-placed:
+      enabled: true
+      content: ''
+      title: '{upper(side)} Order Placed'
+      color: 'LIGHT_BLUE' # 'BLUE', 'LIGHT_BLUE', 'RED', 'GREEN', 'YELLOW', or hex (no quotes): 0xFFFFFF
+      description: 'Placed {type}-{side} order for {quantity} {crypto} at {price} {fiat}\nNew Balance: `{bal_fiat} {fiat}`'
+
+    on-order-filled:
+      enabled: true
+      content: '@everyone'
+      title: '{if(isbuy, :open_circle:, :money_mouth:)} {upper(side)} Order Filled {if(isbuy, :open_circle:, :money_mouth:)}'
+      color: '{if(isbuy, LIGHT_BLUE, profit_color)}'
+      description: '[{side}] {quantity} {symbol} ({bal_fiat} {fiat})'
+      description-if-sell: '\n**Profit:** {profit} {fiat} (**{profit_percent}**)'
+
+    on-order-rejected:
+      enabled: true
+      content: ''
+      title: ':red_circle: {upper(side)} Order Rejected :red_circle:'
+      color: 'RED'
+      description: '[{side}] {quantity} {symbol} ({bal_fiat} {fiat})\nReason: {reason}'
+
+    on-order-expired:
+      enabled: true
+      content: ''
+      title: ':warning: {upper(side)} Order Expired :warning:'
+      color: 'YELLOW'
+      description: '[{side}] {quantity} {symbol} ({bal_fiat} {fiat})\nOrder took too long to fill for {price}'
 
   buy:
     percent-of-balance: 20
