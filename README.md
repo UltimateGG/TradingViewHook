@@ -1,5 +1,7 @@
 ## TradingViewHook
 
+# This branch is no longer maintained
+Why? I have found options to be way more profitable due to their nature of leverage. It is much more efficient so I have decided to focus on primarily options.
 This is a bot that accepts requests from [TradingView](https://www.tradingview.com/) strategies and executes buy/sell orders on Binance based on the webhook POST data.
 
 # Benefits
