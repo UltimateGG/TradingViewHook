@@ -1,6 +1,6 @@
 ## TradingViewHook
 
-# This branch is no longer maintained
+# This project is no longer maintained
 Why? I have found options to be way more profitable due to their nature of leverage. It is much more efficient so I have decided to focus on primarily options.
 
 
